@@ -1,0 +1,3 @@
+interface KeyGenerator {
+    generateKey(): string;
+}
