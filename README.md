@@ -4,8 +4,20 @@
 
 Install the dependencies:
 
-`npm install`
+```
+npm install
+```
 
 Then run the sample:
 
-`npm run dev`
+```
+npm run dev
+```
+
+## Tests
+
+Test can be run via:
+
+```
+npm run test
+```

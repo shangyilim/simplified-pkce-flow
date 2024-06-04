@@ -7,7 +7,7 @@ import axios from "axios";
 
 describe("OAuth Service Tests", () => {
   describe("When initiateAuthRequest() is called", () => {
-    it("should store code verifier in a randomly generated cookie", async () => {
+    it("should generate and store code verifier in a randomly generated cookie", async () => {
       const cookieService = new FakeCookieService();
       // Arrange
       vi.stubGlobal("location", {
@@ -37,7 +37,7 @@ describe("OAuth Service Tests", () => {
       // expect the key is present in cookie
       expect(cookieService.testStorage[generatedRandomCookieKey!]).toBeTruthy();
     });
-    it("should redirect to authorization endpoint with correct parameters", async () => {
+    it("should generate code challenge and redirect to authorization endpoint", async () => {
       // Arrange
       vi.stubGlobal("location", {
         assign: vi.fn(),
@@ -74,7 +74,7 @@ describe("OAuth Service Tests", () => {
     });
   });
   describe("When getRedirectResult() is called", () => {
-    it("should not generate tokens if &state= or &code=code is absent in the url", async () => {
+    it("should not request for tokens if &state= or &code=code is not sent by the server", async () => {
       // Arrange
       vi.stubGlobal("localStorage", {
         getItem: vi.fn(),
@@ -103,7 +103,7 @@ describe("OAuth Service Tests", () => {
       // assert that the no tokens are generated
       expect(result).toBeNull();
     });
-    it("should not generate tokens if code verifier cannot be found in cookie", async () => {
+    it("should not request tokens if no cookie present", async () => {
       // Arrange
       vi.stubGlobal("localStorage", {
         getItem: vi.fn(),
@@ -133,7 +133,7 @@ describe("OAuth Service Tests", () => {
       // assert that the no tokens are generated
       expect(result).toBeNull();
     });
-    it("should not generate tokens if &code does not match client code verifier stored in cookie", async () => {
+    it("should not request for tokens if no corresponding cookie is found.", async () => {
       // Arrange
 
       const code = "123";
@@ -169,7 +169,7 @@ describe("OAuth Service Tests", () => {
 
       expect(result).toBeNull();
     });
-    it("should generate tokens if &state matches client code verifier key stored in local storage", async () => {
+    it("should request for tokens if have corresponding cookie", async () => {
       // Arrange
 
       const code = "123";
@@ -223,7 +223,7 @@ describe("OAuth Service Tests", () => {
       expect(result?.accessToken).toBeTruthy();
       expect(result?.refreshToken).toBeTruthy();
     });
-    it("should store tokens in localStorage on successful token request", async () => {
+    it("should save tokens in localStorage on successful token request", async () => {
       // Arrange
       // in seconds
       const unixTimestamp = Math.floor(new Date().getTime() / 1000);
