@@ -223,6 +223,71 @@ describe("OAuth Service Tests", () => {
       expect(result?.accessToken).toBeTruthy();
       expect(result?.refreshToken).toBeTruthy();
     });
+    it("should exchange for new tokens with previous tokens", async () => {
+      // Arrange
+      const accessToken = "access-token-old";
+      const refreshToken = "refresh-token-old";
+      const newAccessToken = "access-token-new";
+      const newRefreshToken = "refresh-token-new";
+
+      vi.stubGlobal("localStorage", {
+        getItem: vi.fn().mockImplementation((key) => {
+          switch (key) {
+            case "access_token":
+              return accessToken;
+            case "refresh_token":
+              return refreshToken;
+            default:
+              return null;
+          }
+        }),
+        setItem: vi.fn(),
+      });
+
+      const oAuthConfig = {
+        authUrl: "https://mock-endpoint",
+        authorizeUrl: "https://mock-endpoint/authorize",
+        tokenUrl: "https://mock-endpoint/oauth/token",
+        redirectUri: "https://client-redirect",
+        redirectResponseType: ["code", "id_token"],
+      };
+
+      vi.spyOn(axios, "post").mockImplementation((url, data: unknown) => {
+        switch (url) {
+          case oAuthConfig.tokenUrl: {
+            // ensures that the old access token is being sent to the request
+            if (
+              (data as GrantOptions["refresh_token"]).refresh_token ===
+              refreshToken
+            ) {
+              return Promise.resolve({
+                data: {
+                  access_token: newAccessToken,
+                  refresh_token: newRefreshToken,
+                  expires_at: new Date().getTime(),
+                },
+              });
+            }
+            return Promise.reject(new Error("Invalid refresh token"));
+          }
+          default:
+            return Promise.reject(new Error("Invalid URL"));
+        }
+      });
+
+      // Act
+      const oAuthService = new OAuthService(
+        new PkceService(new FakeCookieService()),
+        oAuthConfig
+      );
+      const rotationResponse = await oAuthService.getRedirectResult();
+
+      // Assert
+      expect(rotationResponse?.accessToken).not.toEqual(accessToken);
+      expect(rotationResponse?.refreshToken).not.toEqual(refreshToken);
+      expect(rotationResponse?.accessToken).toEqual(newAccessToken);
+      expect(rotationResponse?.refreshToken).toEqual(newRefreshToken);
+    });
     it("should save tokens in localStorage on successful token request", async () => {
       // Arrange
       // in seconds
